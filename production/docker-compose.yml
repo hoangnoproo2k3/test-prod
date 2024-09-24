@@ -1,0 +1,55 @@
+services:
+  db:
+    image: mysql:8
+    restart: always
+    environment:
+      - MYSQL_DATABASE=utility_social
+      - MYSQL_ROOT_PASSWORD=111111
+    ports:
+      - '3309:3306'
+    expose:
+      - 3306
+    # volumes:
+    #   - ./test.sql:/docker-entrypoint-initdb.d/init.sql
+    #   - mysql_data:/var/lib/mysql
+
+  frontend:
+    build:
+      context: ../utility-social
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../utility-social/.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8089
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ../utility-social-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "2401:2401"
+    env_file:
+      - ../utility-social-api/.env
+    environment:
+      - DB_PORT=3306
+      - DB_HOST=db
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8089:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:
